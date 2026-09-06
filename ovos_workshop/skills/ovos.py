@@ -793,12 +793,61 @@ class OVOSSkill:
                         self._settings[k] = v
             self._initial_settings = copy(self.settings)
 
+        # 202home : sans backend/appairage (aucun ici), RIEN dans OVOS ne lit
+        # jamais settingsmeta pour amorcer settings.json — ça ne sert qu'à un
+        # backend façon Selene. Neon (neon_utils.skills.neon_skill.NeonSkill.
+        # _init_settings, désormais marqué déprécié côté Neon lui-même) le
+        # fait déjà localement ; reproduit ICI, dans le framework, pour que
+        # ça vaille pour CHAQUE skill (les nôtres ET ceux de l'amont), comme
+        # Neon le fait pour les siens. On ne remplace JAMAIS une clé déjà
+        # réglée (merge_dict(..., new_only=True)) : le fichier appartient
+        # ensuite à qui règle l'appareil.
+        defauts = self._lire_defauts_settingsmeta()
+        if defauts:
+            avant = dict(self._settings)
+            merge_dict(self._settings, defauts, new_only=True)
+            if dict(self._settings) != avant:
+                self.log.info(f"{self.skill_id} : valeurs par défaut de "
+                              f"settingsmeta ajoutées à settings.json")
+                self._settings.store()
+                self._initial_settings = copy(self.settings)
+
         # starting on ovos-core 0.0.8 a bus event is emitted
         # all settings.json files are monitored for changes in ovos-core
         self.add_event("ovos.skills.settings_changed", self._handle_settings_changed, speak_errors=False)
 
         if self._monitor_own_settings:
             self._start_filewatcher()
+
+    def _lire_defauts_settingsmeta(self) -> dict:
+        """Valeurs par défaut ("value") de settingsmeta.yml/.yaml/.json, à
+        plat — {nom_du_champ: valeur}, comme neon_utils.configuration_utils.
+        parse_skill_default_settings(). Fichier absent ou illisible -> {},
+        jamais d'exception : un skill sans settingsmeta est un cas normal."""
+        chemin_yml = join(self.root_dir, "settingsmeta.yml")
+        chemin_yaml = join(self.root_dir, "settingsmeta.yaml")
+        chemin_json = join(self.root_dir, "settingsmeta.json")
+        meta = None
+        try:
+            if isfile(chemin_yml) or isfile(chemin_yaml):
+                import yaml
+                with open(chemin_yml if isfile(chemin_yml) else chemin_yaml) as f:
+                    meta = yaml.safe_load(f) or {}
+            elif isfile(chemin_json):
+                with open(chemin_json) as f:
+                    meta = json.load(f)
+        except Exception as e:
+            self.log.warning(f"{self.skill_id} : settingsmeta illisible ({e})")
+            return {}
+        if not meta:
+            return {}
+        defauts = {}
+        for section in (meta.get("skillMetadata") or {}).get("sections") or []:
+            for champ in section.get("fields") or []:
+                nom = champ.get("name")
+                if nom:
+                    defauts[nom] = champ.get("value")
+        return defauts
 
     @property
     def _monitor_own_settings(self):
