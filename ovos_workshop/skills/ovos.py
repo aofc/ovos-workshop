@@ -920,6 +920,14 @@ class OVOSSkill:
                 LOG.debug(f"Registering common query handler for: {self.skill_id} - callback: {self._cq_callback}")
                 self.__handle_common_query_ping(Message("ovos.common_query.ping"))
 
+            # 202home : @tag_handler, discovered exactly like @intent_handler
+            # above. Wired to a fixed bus event (no intent file, no adapt/
+            # padatious registration) — a pipeline plugin upstream (a tagger,
+            # a generic intention router) is what decides whether/when this
+            # ever fires.
+            if hasattr(method, 'is_tag_handler'):
+                self.add_event(f"{self.skill_id}:tags", method)
+
     def bind(self, bus: MessageBusClient):
         """
         Register MessageBusClient with skill.

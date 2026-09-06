@@ -74,6 +74,24 @@ def intent_handler(intent_parser: object, voc_blacklist: Optional[List[str]] = N
     return real_decorator
 
 
+def tag_handler(func):
+    """
+    202home : decorator marking a method as the handler for tags resolved
+    by an upstream pipeline (a tagger plugin, e.g. 202home-tagger, plus a
+    generic intention router, e.g. cluster-llm's router-llm) — BEFORE
+    padatious/adapt are consulted. Discovered by _register_decorated(),
+    exactly like @intent_handler, and wired to the bus event
+    f"{self.skill_id}:tags".
+
+    The decorator itself does nothing beyond marking the function; the
+    routing decision (which tags matter, what they mean) is made entirely
+    upstream, by the pipeline plugin(s) that emit that bus event — this
+    skill-side marker only says "I am the one who wants to receive them".
+    """
+    func.is_tag_handler = True
+    return func
+
+
 def resting_screen_handler(name: str):
     """
     Decorator for adding a method as a resting screen handler to optionally
