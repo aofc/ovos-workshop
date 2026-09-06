@@ -975,7 +975,16 @@ class OVOSSkill:
             # a generic intention router) is what decides whether/when this
             # ever fires.
             if hasattr(method, 'is_tag_handler'):
-                self.add_event(f"{self.skill_id}:tags", method)
+                # Même trio que register_intent/register_intent_file
+                # ('mycroft.skill.handler', activation=True, is_intent=True) :
+                # sans lui, add_event() ne relaie RIEN sur le bus (handler_info
+                # est None par défaut) — ni mycroft.skill.handler.start/
+                # .complete, ni ovos.utterance.handled, ni l'activation du
+                # skill. Un @tag_handler doit être aussi visible sur le bus
+                # qu'un @intent_handler, pas un événement interne discret.
+                self.add_event(f"{self.skill_id}:tags", method,
+                               'mycroft.skill.handler',
+                               activation=True, is_intent=True)
 
     def bind(self, bus: MessageBusClient):
         """
