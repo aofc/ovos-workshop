@@ -55,8 +55,14 @@ def get_description():
     return long_description
 
 
+# Nom pip SEUL renommé — pas le module `ovos_workshop` (packages= plus bas),
+# importé directement par ovos-core lui-même (qu'on ne fork pas) ET par
+# plusieurs fichiers de ce dépôt (skill-mycroft4jeedom.aofc entre autres) :
+# renommer l'import cassait tout ça sans aucun bénéfice, alors que le nom
+# pip seul suffit déjà à distinguer notre fork du vrai paquet PyPI dans
+# `pip list`/`pip show` — voir stack/manifeste.yaml, section forks.
 setup(
-    name='ovos_workshop',
+    name='202home-ovos-workshop',
     version=get_version(),
     packages=['ovos_workshop',
               'ovos_workshop.skills',
