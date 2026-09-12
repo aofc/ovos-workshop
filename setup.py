@@ -55,14 +55,21 @@ def get_description():
     return long_description
 
 
-# Nom pip SEUL renommé — pas le module `ovos_workshop` (packages= plus bas),
-# importé directement par ovos-core lui-même (qu'on ne fork pas) ET par
-# plusieurs fichiers de ce dépôt (skill-mycroft4jeedom.aofc entre autres) :
-# renommer l'import cassait tout ça sans aucun bénéfice, alors que le nom
-# pip seul suffit déjà à distinguer notre fork du vrai paquet PyPI dans
-# `pip list`/`pip show` — voir stack/manifeste.yaml, section forks.
+# PAS de nom pip renommé, contrairement aux autres forks 202home (wifi-
+# setup, pulseaudio) — RÉGRESSION CONSTATÉE EN VRAI : ovos-core==2.1.1
+# déclare `Requires-Dist: ovos-workshop<8.0.0,>=7.0.6` (vérifié dans ses
+# métadonnées PyPI). Renommer notre distribution en 202home-ovos-workshop
+# faisait perdre à pip toute trace d'un paquet satisfaisant CE nom-là : au
+# `pip install ovos-core==2.1.1` suivant, pip réinstallait silencieusement
+# le VRAI ovos-workshop de PyPI par-dessus notre fork (même dossier de
+# module ovos_workshop, donc écrasement direct) — @tag_handler
+# disparaissait, le skill ne se chargeait plus
+# (« cannot import name 'tag_handler' »), constaté en vrai sur un build
+# réel. Le nom de distribution DOIT rester identique à l'amont pour que
+# pip continue de reconnaître notre fork comme la réponse à cette
+# dépendance — l'ambiguïté pip list/pip show est un moindre mal ici.
 setup(
-    name='202home-ovos-workshop',
+    name='ovos_workshop',
     version=get_version(),
     packages=['ovos_workshop',
               'ovos_workshop.skills',
